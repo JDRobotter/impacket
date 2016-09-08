@@ -2345,6 +2345,7 @@ class SMBCommands:
                     jtr_dump_path = smbServer.getJTRdumpPath()
                     ntlm_hash_data = outputToJohnFormat( connData['CHALLENGE_MESSAGE']['challenge'], authenticateMessage['user_name'], authenticateMessage['domain_name'], authenticateMessage['lanman'], authenticateMessage['ntlm'] )
                     smbServer.log(ntlm_hash_data['hash_string'])
+                    smbServer.onHashCallback(ntlm_hash_data['hash_string'],ntlm_hash_data['hash_version'])
                     if jtr_dump_path is not '':
                         writeJohnOutputToFile(ntlm_hash_data['hash_string'], ntlm_hash_data['hash_version'], jtr_dump_path)
                 except:
@@ -3695,7 +3696,10 @@ smb.SMB.TRANS_TRANSACT_NMPIPE          :self.__smbTransHandler.transactNamedPipe
 
         # List of active connections
         self.__activeConnections = {}
-  
+
+        # Hash found callback
+        self.__on_hash_callback = None
+
     def getIoctls(self):
         return self.__smb2Ioctls
 
@@ -4164,6 +4168,13 @@ smb.SMB.TRANS_TRANSACT_NMPIPE          :self.__smbTransHandler.transactNamedPipe
             cred.close()
         self.log('Config file parsed')     
 
+    def registerHashCallback(self, f):
+      self.__on_hash_callback = f
+
+    def onHashCallback(self, h, v):
+      if self.__on_hash_callback is not None:
+        self.__on_hash_callback(h,v)
+
 # For windows platforms, opening a directory is not an option, so we set a void FD
 VOID_FILE_DESCRIPTOR = -1
 PIPE_FILE_DESCRIPTOR = -2
@@ -4357,6 +4368,9 @@ class SimpleSMBServer:
         self.__wkstServer.daemon = True
         self.__server.registerNamedPipe('srvsvc',('127.0.0.1',self.__srvsServer.getListenPort()))
         self.__server.registerNamedPipe('wkssvc',('127.0.0.1',self.__wkstServer.getListenPort()))
+
+    def registerHashCallback(self, f):
+      self.__server.registerHashCallback(f)
 
     def start(self):
         self.__srvsServer.start()
