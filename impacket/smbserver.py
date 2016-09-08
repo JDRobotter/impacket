@@ -3567,6 +3567,7 @@ class SMBSERVERHandler(SocketServer.BaseRequestHandler):
 
 class SMBSERVER(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 #class SMBSERVER(SocketServer.ForkingMixIn, SocketServer.TCPServer):
+    daemon_threads = True
     def __init__(self, server_address, handler_class=SMBSERVERHandler, config_parser = None):
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(self, server_address, handler_class)
